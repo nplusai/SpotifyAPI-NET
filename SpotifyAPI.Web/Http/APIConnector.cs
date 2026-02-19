@@ -205,10 +205,10 @@ namespace SpotifyAPI.Web.Http
       {
         response = await _retryHandler.HandleRetry(request, response, async (newRequest) =>
         {
-          await ApplyAuthenticator(request).ConfigureAwait(false);
-          var newResponse = await _httpClient.DoRequest(request).ConfigureAwait(false);
+          await ApplyAuthenticator(newRequest).ConfigureAwait(false);
+          var newResponse = await _httpClient.DoRequest(newRequest).ConfigureAwait(false);
           _httpLogger?.OnResponse(newResponse);
-          ResponseReceived?.Invoke(this, response);
+          ResponseReceived?.Invoke(this, newResponse);
           return newResponse;
         }).ConfigureAwait(false);
       }
@@ -219,13 +219,13 @@ namespace SpotifyAPI.Web.Http
     private async Task ApplyAuthenticator(IRequest request)
     {
 #if NETSTANDARD2_0
-      if (_authenticator != null
-        && !request.Endpoint.IsAbsoluteUri
-        || request.Endpoint.AbsoluteUri.Contains("https://api.spotify.com"))
+      if (_authenticator != null && (
+            !request.Endpoint.IsAbsoluteUri ||
+            request.Endpoint.AbsoluteUri.Contains("https://api.spotify.com")))
 #else
-      if (_authenticator != null
-        && !request.Endpoint.IsAbsoluteUri
-        || request.Endpoint.AbsoluteUri.Contains("https://api.spotify.com", StringComparison.InvariantCulture))
+      if (_authenticator != null && (
+            !request.Endpoint.IsAbsoluteUri ||
+            request.Endpoint.AbsoluteUri.Contains("https://api.spotify.com", StringComparison.InvariantCulture)))
 #endif
       {
         await _authenticator!.Apply(request, this).ConfigureAwait(false);
